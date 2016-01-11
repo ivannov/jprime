@@ -18,10 +18,14 @@ import site.model.Submission;
  */
 public class AbstractCfpController {
 
+    @Autowired
+    @Qualifier(UserService.NAME)
+    protected UserService userFacade;
+
 	@Autowired
 	@Qualifier(ThumbnailService.NAME)
 	private ThumbnailService thumbnailService;
-	
+
     protected Model buildCfpFormModel(Model model, Submission submission) {
         model.addAttribute("submission", submission);
         model.addAttribute("levels", SessionLevel.values());
@@ -29,32 +33,53 @@ public class AbstractCfpController {
         return model;
     }
 
-    protected void saveSubmission(Submission submission, MultipartFile file, UserService userFacade) {
-        fixTwitterHandle(submission.getSpeaker());
+    protected void saveSubmission(Submission submission, MultipartFile speakerImage,
+            MultipartFile coSpeakerImage) {
+        submission.setSpeaker(handleSubmittedSpeaker(submission.getSpeaker(), speakerImage));
+        if (hasCoSpeaker(submission)) {
+            submission.setCoSpeaker(handleSubmittedSpeaker(submission.getCoSpeaker(), coSpeakerImage));
+        } else {
+            submission.setCoSpeaker(null);
+        }
+        userFacade.submitTalk(submission);
+    }
 
-        Speaker existingSpeaker = userFacade.findSpeaker(submission.getSpeaker().getEmail());
-        if(existingSpeaker != null){
-            //replace speaker
-            submission.setSpeaker(existingSpeaker);
-        } else if (!file.isEmpty()) { //new speaker.. file is required
+    private boolean hasCoSpeaker(Submission submission) {
+        return submission.getCoSpeaker() != null &&
+                submission.getCoSpeaker().getLastName() != null &&
+                !submission.getCoSpeaker().getLastName().equals("");
+    }
+
+    private Speaker handleSubmittedSpeaker(Speaker speaker, MultipartFile image) {
+        fixTwitterHandle(speaker);
+        speaker.setBranch(Globals.CURRENT_BRANCH);
+
+        Speaker existingSpeaker = userFacade.findSpeaker(speaker.getEmail());
+        if (existingSpeaker != null) {
+            return existingSpeaker;
+        } else {
+            //new speaker.. file is required
+            formatPicture(speaker, image);
+            return speaker;
+        }
+    }
+
+    private void formatPicture(Speaker speaker, MultipartFile image) {
+        if (!image.isEmpty()) {
             try {
-                byte[] bytes = file.getBytes();
-                submission.getSpeaker().setPicture(thumbnailService.thumbImage(bytes, 280, 326));
+                byte[] bytes = image.getBytes();
+                speaker.setPicture(thumbnailService.thumbImage(bytes, 280, 326));
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
-        
-        submission.getSpeaker().setBranch(Globals.CURRENT_BRANCH);
-        userFacade.submitTalk(submission);
     }
 
-    protected Speaker fixTwitterHandle(Speaker speaker) {
+    Speaker fixTwitterHandle(Speaker speaker) {
         String twitterHandle = speaker.getTwitter();
         if (twitterHandle != null && twitterHandle.startsWith("@")) {
             speaker.setTwitter(twitterHandle.substring(1));
         }
-
         return speaker;
     }
 
