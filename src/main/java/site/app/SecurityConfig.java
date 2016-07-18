@@ -90,10 +90,10 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                         //TODO Mihail: "/" only works if tomcat/conf/web.xml has index.jsp commented as a welcome page
                         //TODO if not, the controller will not be called and the jsp is not going to have any model object filled up.
                 .antMatchers("/", "/login", "/about", "/nav/**", "/cfp", "/signup", "/resetPassword","/createNewPassword", "/successfulPasswordChange", "/image/**", "/tickets/**", "/team","/venue", "/404").permitAll() // #4
-                .antMatchers(HttpMethod.GET, "/halls", "/halls/**", "/sessions", "/sessions/**", "/submissions", "/submissions/**").permitAll()
+                .antMatchers(HttpMethod.GET, "/halls", "/halls/**", "/sessions", "/sessions/**", "/submissions", "/submissions/**", "/ivan", "/ivan/**").permitAll()
                 .antMatchers("/admin/**").hasAuthority("ADMIN") // #6
                 .antMatchers("/user/**").hasAuthority("USER") //will contain schedule and etc
-                .anyRequest().authenticated() // 7
+//                .anyRequest().authenticated() // 7
                 .and()
                 .formLogin()  // #8
                 .loginPage("/login") // #9
